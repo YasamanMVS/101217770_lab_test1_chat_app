@@ -125,3 +125,25 @@ app.post('/api/join-room', async (req, res) => {
         res.status(500).json({ message: 'Error joining room', error: error.message });
     }
 });
+
+
+// Leave the Room
+app.post('/api/leave-room', async (req, res) => {
+    const { username } = req.body;
+
+    try {
+        // Check if the user exists
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found!!' });
+        }
+
+        // Remove the user from the room
+        user.room = null;
+        await user.save();
+
+        res.status(200).json({ message: `User has left the room` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error leaving room', error: error.message });
+    }
+});
