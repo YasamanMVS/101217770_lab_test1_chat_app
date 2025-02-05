@@ -103,3 +103,25 @@ app.post('/api/login', async (req, res) => {
         res.status(500).json({ message: 'Error logging in!', error: error.message });
     }
 });
+
+
+// Joining Room
+app.post('/api/join-room', async (req, res) => {
+    const { username, room } = req.body;
+
+    try {
+        // Check if the user exists
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found!' });
+        }
+
+        // Update the user's current room
+        user.room = room;
+        await user.save();
+
+        res.status(200).json({ message: `User joined room: ${room}` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error joining room', error: error.message });
+    }
+});
