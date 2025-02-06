@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Chat App</h1>
+    <!-- Join Room Section -->
+    <div id="join-room">
+        <input id="username" placeholder="Enter username" />
+        <select id="room">
+            <option value="" disabled selected>Select a room</option>
+        </select>
+        <button onclick="joinRoom()">Join Room</button>
+    </div>
+
+    <!-- Chat Room Section -->
+    <div id="chat-room" style="display: none;">
+        <h2 id="room-name"></h2>
+        <p id="members">Members:</p>
+        <div id="messages" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto;"></div>
+        <input id="message" placeholder="Enter message" />
+        <button onclick="sendMessage()">Send Message</button>
+        <button onclick="leaveRoom()">Leave Room</button>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:5000'); 
+
+        // Fetch available rooms from the server and populate the dropdown
+        window.onload = async () => {
+            const roomDropdown = document.getElementById('room');
+            const response = await fetch('http://localhost:5000/api/rooms');
+            const rooms = await response.json();
+
+            rooms.forEach((room) => {
+                const option = document.createElement('option');
+                option.value = room.name;
+                option.textContent = room.name;
+                roomDropdown.appendChild(option);
+            });
+        };
+
+
+        let currentRoom = null;
+        let currentUsername = null;
+
+        function joinRoom() {
+            const username = document.getElementById('username').value;
+            const room = document.getElementById('room').value;
+
+            if (!username || !room) {
+                alert('Please enter a username and select a room.');
+                return;
+            }
+
+            // Save the room and username for later use
+            currentRoom = room;
+            currentUsername = username;
+
+            // Display chat room UI
+            document.getElementById('room-name').textContent = `Room name: ${room}`;
+            document.getElementById('chat-room').style.display = 'block';
+            document.getElementById('join-room').style.display = 'none';
+
+            // Emit joinRoom event
+            socket.emit('joinRoom', { username, room });
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('message').value;
+        
+            if (!message) {
+                alert('Please enter a message.');
+                return;
+            }
+        
+            socket.emit('sendMessage', { username: currentUsername, room: currentRoom, message });
+            document.getElementById('message').value = ''; // Clear input
+        }
+
+
+        function leaveRoom() {
+            socket.emit('leaveRoom', { username: currentUsername, room: currentRoom });
+
+            // Reset UI and clear stored values if needed
+            document.getElementById('chat-room').style.display = 'none';
+            document.getElementById('join-room').style.display = 'block';
+            document.getElementById('messages').innerHTML = '';
+            
+            // clear stored values
+            currentUsername = null;
+            currentRoom = null;
+        }
+
+        // Listen for messages from the server
+        socket.on('message', (data) => {
+            const messages = document.getElementById('messages');
+    const message = document.createElement('div');
+    message.innerHTML = `<b>${data.username}:</b> ${data.message}`;
+    messages.appendChild(message);
+
+    // Auto-scroll to the bottom of the messages container
+    messages.scrollTop = messages.scrollHeight;
+});
+    </script>
+</body>
+</html>
